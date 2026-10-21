@@ -10,6 +10,7 @@ export function ActivityScreen() {
   const [cursor, setCursor] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const busy = useRef(false);
 
@@ -17,6 +18,7 @@ export function ActivityScreen() {
     if (busy.current) return;
     busy.current = true;
     setLoading(true);
+    if (reset) setRefreshing(true);
     setError(null);
     try {
       const page = await withRetry(() => api.activity(reset ? null : cursor));
@@ -32,6 +34,7 @@ export function ActivityScreen() {
     } finally {
       busy.current = false;
       setLoading(false);
+      setRefreshing(false);
     }
   }, [cursor]);
 
@@ -59,20 +62,26 @@ export function ActivityScreen() {
       ListHeaderComponent={
         <View style={s.row}>
           <Text style={s.muted}>Newest first</Text>
-          <Pressable onPress={() => load(true)} disabled={loading} hitSlop={10}>
-            <Text style={{ color: colors.primary, fontWeight: '600' }}>↻ Refresh</Text>
+          <Pressable accessibilityRole="button" onPress={() => load(true)} disabled={loading} hitSlop={10}>
+            {refreshing ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : (
+              <Text style={{ color: colors.primary, fontWeight: '600' }}>↻ Refresh</Text>
+            )}
           </Pressable>
         </View>
       }
       ListEmptyComponent={<Text style={s.muted}>No activity yet.</Text>}
       renderItem={({ item }) => <Row item={item} />}
+      refreshing={refreshing}
+      onRefresh={() => load(true)}
       ListFooterComponent={
         error ? (
           <Banner tone="error">
             <Text style={{ color: colors.danger }}>Couldn't load more: {error}</Text>
             <Button title="Try again" variant="secondary" onPress={() => load(false)} />
           </Banner>
-        ) : loading ? (
+        ) : loading && !refreshing ? (
           <ActivityIndicator color={colors.primary} />
         ) : done && items.length > 0 ? (
           <Text style={[s.muted, { textAlign: 'center' }]}>That's everything.</Text>
