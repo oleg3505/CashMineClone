@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-nati
 import { formatAmount, formatUsd, toUnits, usdMicros } from '../lib/amount';
 import { applyClaimOverlay, type AdjustedBalance } from '../lib/balanceOverlay';
 import { useBalances } from '../state/balancesStore';
-import { useClaims } from '../state/claimsStore';
+import { claims, useClaims } from '../state/claimsStore';
 import { Banner, Button, Centered, ErrorState } from '../ui/components';
 import { colors, s } from '../ui/theme';
 
@@ -31,7 +31,7 @@ export function HomeScreen({
   onOpenSubmission: () => void;
 }) {
   const { data, loading, error, refresh } = useBalances();
-  const { known, submission } = useClaims();
+  const { known, submission, failedNotices } = useClaims();
   const now = useNow();
 
   const rows = useMemo(() => (data ? applyClaimOverlay(data.items, data.asOf, known) : []), [data, known]);
@@ -89,6 +89,22 @@ export function HomeScreen({
           </Banner>
         </Pressable>
       )}
+
+      {failedNotices.map((c) => (
+        <Banner key={c.id} tone="error">
+          <Text style={{ color: colors.danger }}>
+            {`Your claim of ${c.amount} ${c.asset} failed${c.failureReason ? `: ${c.failureReason}` : '.'} ${c.amount} ${c.asset} is back in your available balance.`}
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 16 }}>
+            <Pressable onPress={() => onOpenClaim(c.id)} hitSlop={8}>
+              <Text style={{ color: colors.primary, fontWeight: '600' }}>Details</Text>
+            </Pressable>
+            <Pressable onPress={() => claims.dismissFailed(c.id)} hitSlop={8}>
+              <Text style={{ color: colors.primary, fontWeight: '600' }}>Dismiss</Text>
+            </Pressable>
+          </View>
+        </Banner>
+      ))}
 
       {activeClaims.map((c) => (
         <Pressable key={c.id} onPress={() => onOpenClaim(c.id)}>

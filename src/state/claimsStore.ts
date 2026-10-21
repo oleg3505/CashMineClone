@@ -27,9 +27,12 @@ type State = {
   submission: Submission | null;
   /** Set when a submission produced a claim; the UI navigates to it. */
   lastCreatedId: string | null;
+  /** Failed claims the user has not dismissed yet, so a returned amount is never unexplained. */
+  failedNotices: Claim[];
 };
 
 const KNOWN_KEY = 'cm.knownClaims';
+const FAILED_KEY = 'cm.failedNotices';
 const SUBMISSION_KEY = 'cm.pendingSubmission';
 const MAX_AUTO_ATTEMPTS = 5;
 const POLL_MS = 2000;
@@ -38,6 +41,7 @@ let state: State = {
   known: getJson<Claim[]>(KNOWN_KEY) ?? [],
   submission: restoreSubmission(),
   lastCreatedId: null,
+  failedNotices: getJson<Claim[]>(FAILED_KEY) ?? [],
 };
 const listeners = new Set<() => void>();
 
@@ -50,6 +54,7 @@ function restoreSubmission(): Submission | null {
 function set(next: Partial<State>) {
   state = { ...state, ...next };
   setJson(KNOWN_KEY, state.known);
+  setJson(FAILED_KEY, state.failedNotices);
   if (state.submission && state.submission.phase !== 'rejected') setJson(SUBMISSION_KEY, state.submission);
   else setJson(SUBMISSION_KEY, null);
   listeners.forEach((l) => l());
@@ -66,7 +71,12 @@ export function useClaims(): State {
 
 function upsertClaim(claim: Claim) {
   const others = state.known.filter((c) => c.id !== claim.id);
-  set({ known: [claim, ...others] });
+  const prev = state.known.find((c) => c.id === claim.id);
+  const newlyFailed = claim.status === 'failed' && prev?.status !== 'failed';
+  set({
+    known: [claim, ...others],
+    ...(newlyFailed && { failedNotices: [claim, ...state.failedNotices.filter((c) => c.id !== claim.id)] }),
+  });
 }
 
 function newKey(): string {
@@ -136,6 +146,10 @@ export const claims = {
     if (state.submission?.phase === 'rejected') set({ submission: null });
   },
 
+  dismissFailed(id: string) {
+    set({ failedNotices: state.failedNotices.filter((c) => c.id !== id) });
+  },
+
   consumeCreated() {
     set({ lastCreatedId: null });
   },
@@ -182,7 +196,7 @@ export function resumeClaims(token: string) {
   const owner = token.slice(-16);
   if (getJson<string>(OWNER_KEY) !== owner) {
     tracking.clear();
-    set({ known: [], submission: null, lastCreatedId: null });
+    set({ known: [], submission: null, lastCreatedId: null, failedNotices: [] });
     setJson(OWNER_KEY, owner);
     return;
   }
