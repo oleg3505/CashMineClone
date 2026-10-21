@@ -4,7 +4,7 @@ import { formatAmount, formatUsd, toUnits, usdMicros } from '../lib/amount';
 import { applyClaimOverlay, type AdjustedBalance } from '../lib/balanceOverlay';
 import { useBalances } from '../state/balancesStore';
 import { claims, useClaims } from '../state/claimsStore';
-import { Banner, Button, Centered, ErrorState } from '../ui/components';
+import { Banner, Button, Centered, ErrorState, RefreshButton } from '../ui/components';
 import { colors, s } from '../ui/theme';
 
 function useNow(intervalMs = 1000) {
@@ -30,7 +30,7 @@ export function HomeScreen({
   onOpenClaim: (id: string) => void;
   onOpenSubmission: () => void;
 }) {
-  const { data, loading, error, refresh } = useBalances();
+  const { data, error, refresh } = useBalances();
   const { known, submission, failedNotices } = useClaims();
   const now = useNow();
 
@@ -72,9 +72,7 @@ export function HomeScreen({
           <Text style={[s.muted, stale && { color: colors.warn }]}>
             {stale ? '⚠ ' : ''}Updated {ago(age)}
           </Text>
-          <Pressable accessibilityRole="button" onPress={refresh} disabled={loading} hitSlop={10}>
-            {loading ? <ActivityIndicator color={colors.primary} /> : <Text style={{ color: colors.primary, fontWeight: '600' }}>↻ Refresh</Text>}
-          </Pressable>
+          <RefreshButton onRefresh={refresh} />
         </View>
       </View>
 

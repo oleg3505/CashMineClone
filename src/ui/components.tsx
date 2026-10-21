@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { colors, s } from './theme';
 
@@ -77,6 +78,37 @@ export function Header({ title, onBack, right }: { title: string; onBack?: () =>
       <Text style={[s.h1, { flex: 1 }]}>{title}</Text>
       {right}
     </View>
+  );
+}
+
+const MIN_REFRESH_MS = 500;
+
+/** Refresh link that turns into a "Refreshing…" state while the user-started refresh runs. */
+export function RefreshButton({ onRefresh }: { onRefresh: () => Promise<unknown> }) {
+  const [refreshing, setRefreshing] = useState(false);
+
+  const press = async () => {
+    setRefreshing(true);
+    const minimum = new Promise((r) => setTimeout(r, MIN_REFRESH_MS));
+    try {
+      await Promise.all([onRefresh(), minimum]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  if (refreshing) {
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }} accessibilityLiveRegion="polite">
+        <ActivityIndicator size="small" color={colors.primary} />
+        <Text style={{ color: colors.muted }}>Refreshing…</Text>
+      </View>
+    );
+  }
+  return (
+    <Pressable accessibilityRole="button" onPress={press} hitSlop={10}>
+      <Text style={{ color: colors.primary, fontWeight: '600' }}>↻ Refresh</Text>
+    </Pressable>
   );
 }
 

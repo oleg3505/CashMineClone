@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Text, View } from 'react-native';
 import { api, ApiError, withRetry } from '../api/client';
 import type { ActivityItem } from '../api/types';
-import { Banner, Button, Centered, ErrorState } from '../ui/components';
+import { Banner, Button, Centered, ErrorState, RefreshButton } from '../ui/components';
 import { colors, s } from '../ui/theme';
 
 export function ActivityScreen() {
@@ -62,13 +62,7 @@ export function ActivityScreen() {
       ListHeaderComponent={
         <View style={s.row}>
           <Text style={s.muted}>Newest first</Text>
-          <Pressable accessibilityRole="button" onPress={() => load(true)} disabled={loading} hitSlop={10}>
-            {refreshing ? (
-              <ActivityIndicator color={colors.primary} />
-            ) : (
-              <Text style={{ color: colors.primary, fontWeight: '600' }}>↻ Refresh</Text>
-            )}
-          </Pressable>
+          <RefreshButton onRefresh={() => load(true)} />
         </View>
       }
       ListEmptyComponent={<Text style={s.muted}>No activity yet.</Text>}
