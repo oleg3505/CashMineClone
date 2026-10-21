@@ -171,8 +171,21 @@ export async function trackClaim(id: string): Promise<void> {
   }
 }
 
-/** Resume work left over from a previous session (page reload mid-claim). */
-export function resumeClaims() {
+const OWNER_KEY = 'cm.claimsOwner';
+
+/**
+ * Resume work left over from a previous session (page reload mid-claim).
+ * Persisted claims belong to one token; switching tokens starts clean so one
+ * account's claims are never overlaid on another account's balances.
+ */
+export function resumeClaims(token: string) {
+  const owner = token.slice(-16);
+  if (getJson<string>(OWNER_KEY) !== owner) {
+    tracking.clear();
+    set({ known: [], submission: null, lastCreatedId: null });
+    setJson(OWNER_KEY, owner);
+    return;
+  }
   state.known.filter((c) => c.status === 'pending').forEach((c) => void trackClaim(c.id));
   if (state.submission?.phase === 'unknown') void runSubmission();
 }
