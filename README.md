@@ -1,6 +1,6 @@
 # CashMine Payback (Expo / React Native Web)
 
-**Live:** _TODO: deployed URL_
+**Live:** https://cash-mine-clone.expo.app
 
 A phone-first slice of the CashMine app: payback balances, claiming, and activity history.
 On first open the app asks for an API token. It is kept only in this browser's localStorage,
