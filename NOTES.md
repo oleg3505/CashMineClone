@@ -48,15 +48,36 @@ automatic retries because the server guarantees they are safe and most failures 
 
 ## Working with AI
 
-All in [ai-logs/](ai-logs/) (Claude Code session export).
+All in [ai-logs/](ai-logs/) (Claude Code session export; line numbers refer to it, and
+[ai-logs/README.md](ai-logs/README.md) indexes the key moments).
 
-1. **A prompt that did not get me what I wanted.** _TODO (fill in honestly from the log)._
-2. **AI output that was wrong or risky.** When scaffolding, the agent copied the generated Expo
-   project, including its own `.git` folder, over my repo. That silently moved `main` to the
-   template's "Initial commit". I found out because a commit was blocked as "commit on protected branch
-   main" although we had just created a feature branch. The agent repaired the refs (main back to my
-   first commit, branch on top) only after I approved it explicitly. _TODO: add your own view._
-3. **Disagreeing with / rejecting a suggestion.** _TODO (fill in honestly from the log)._
+1. **A prompt that did not get me what I wanted.** I wrote "on activity screen i don see refreshind
+   process" (log line 1431). The agent took that literally and swapped the small "↻ Refresh" label
+   for an equally small spinner. Technically that fixed it, but it wasn't what I had in mind. I
+   rewrote the prompt to describe the state I wanted instead of the symptom: "add refresh state
+   instead of refresh button when i press refresh" (1613). That produced a shared `RefreshButton`
+   that shows a spinner and "Refreshing…", stays visible for at least 500 ms so it doesn't flash,
+   and ignores Home's 15 s background refresh so the header doesn't flicker.
+2. **AI output that was wrong or risky.** While scaffolding, the agent copied the generated Expo
+   project over my repo, including the template's own `.git` folder. That silently moved `main` to
+   the template's "Initial commit" and dropped my remote config (lines 188–300). I found out because
+   my team's protected-branch hook blocked a commit "on main" right after we had created a feature
+   branch. The agent proposed exact commands to put the refs back, and I let it run them only after
+   it explained what each would change (288). No files were lost, but I had to add the remote back by
+   hand later (1029). My takeaway: guard rails catch what a quick look at the output misses, and I
+   never let an agent move git refs without my explicit OK.
+3. **Disagreeing with the AI.** I reported that refreshing the app made claims fail (1076). The agent
+   couldn't reproduce it in a browser, then pulled my claims from the API. It concluded the failures
+   came from the server ("The destination rejected the transfer…"), not from the refresh. I wasn't
+   convinced and said it had failed again after 3–4 refreshes (1367). It checked again with fresh
+   data: the new failure had the same server-side reason, and my reloads during that claim had
+   produced exactly one claim on the server, so the idempotency logic held. In the end the AI was
+   right about the cause and I was wrong. Pushing on it still paid off: the investigation exposed a
+   real gap. A claim that failed after the user left the status screen put the money back in
+   "available" with no explanation, which is exactly the "balance jumped back up" complaint in the
+   brief. We fixed it with a failed-claim notice on Home that stays until dismissed (`8814efe`).
+   It happened the other way round too: when I asked the agent to make the logs look nicer, it
+   refused because the task asks for untidied logs, and only redacted the token (1818).
 
 ## Not done / known issues
 
